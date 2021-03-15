@@ -8,6 +8,7 @@ package godmi
 
 import (
 	"fmt"
+	"strings"
 )
 
 type ProcessorType byte
@@ -589,7 +590,16 @@ func (p ProcessorFamily) String() string {
 	return families[p]
 }
 
-type ProcessorID uint64
+type ProcessorID []byte
+
+func (p ProcessorID) String() string {
+	var t []string
+	for i := range p {
+		t = append(t, fmt.Sprintf("%02X", p[i]))
+	}
+
+	return strings.Join(t, " ")
+}
 
 type ProcessorVoltage byte
 
@@ -613,7 +623,7 @@ func (p ProcessorVoltage) String() string {
 	if p&ProcessorVoltageLegacy == 0 {
 		return voltages[p]
 	}
-	return fmt.Sprintf("%.1f", (p-0x80)/10)
+	return fmt.Sprintf("%.1f", float64(p-0x80)/10)
 }
 
 type ProcessorStatus byte
@@ -638,7 +648,16 @@ func (p ProcessorStatus) String() string {
 		"Reserved",
 		"Other",
 	}
-	return status[p]
+	var resp []string
+	switch uint8(p) & 64 {
+	case 0:
+		resp = append(resp, "Unpopulated")
+	case 64:
+		resp = append(resp, "Populated")
+	}
+
+	resp = append(resp, status[uint8(p)&7])
+	return strings.Join(resp, ",")
 }
 
 type ProcessorUpgrade byte
@@ -765,7 +784,14 @@ func (p ProcessorCharacteristics) String() string {
 		"Enhanced Virtualization",
 		"Power/Performance Control",
 	}
-	return chars[p]
+	var resp []string
+	for i := 1; i <= 16; i++ {
+		if p&(1<<uint(i)) != 0 {
+			resp = append(resp, chars[i])
+		}
+	}
+
+	return strings.Join(resp, ",")
 }
 
 // type 4
